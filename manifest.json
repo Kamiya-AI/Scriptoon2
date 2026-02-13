@@ -1,0 +1,16 @@
+{
+  "name": "Scriptoon 2",
+  "short_name": "Scriptoon 2",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90e2",
+  "description": "AI Manga Creation Tool",
+  "icons": [
+    {
+      "src": "icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

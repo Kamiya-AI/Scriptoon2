@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Scriptoon 2 - AI漫画制作アプリ</title>
+    <meta name="description" content="AIを活用した漫画制作ワークフローアプリ。キャラクターデザインから字コンテ、シーン画像生成までを一貫して行えます。">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- 設定モーダル -->
+    <div class="modal-overlay" id="settingsModal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ 設定</h2>
+                <button class="close-modal-btn" id="closeSettingsBtn">&times;</button>
+            </div>
+            <div class="api-key-section">
+                <label for="apiKeyInput">OpenRouter APIキー</label>
+                <input type="password" id="apiKeyInput" placeholder="sk-or-v1-xxxx...">
+                <div class="modal-actions">
+                    <button class="btn btn-primary" id="saveApiKeyBtn">保存</button>
+                    <button class="btn btn-danger" id="deleteApiKeyBtn">削除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 画像ビューア -->
+    <div class="modal-overlay" id="imageViewerModal" style="display:none;">
+        <div class="image-viewer-content">
+            <button class="close-viewer-btn" id="closeViewerBtn">&times;</button>
+            <img id="viewerImage" src="" alt="拡大画像">
+        </div>
+    </div>
+
+
+
+    <!-- メインコンテナ -->
+    <div class="app-container">
+        <!-- ヘッダー -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>Scriptoon 2</h1>
+                <span class="mode-badge">漫画モード</span>
+            </div>
+            <div class="header-right">
+                <div class="api-warning" id="apiWarning">⚠️ APIキーを入力してください</div>
+                <button class="header-btn" id="settingsBtn" title="設定">⚙️</button>
+            </div>
+        </header>
+
+        <!-- ステータスバー -->
+        <div class="status-bar" id="statusBar" style="display:none;">
+            <span class="status-message" id="statusMessage"></span>
+            <div class="status-spinner" id="statusSpinner"></div>
+        </div>
+
+        <!-- メイン3パネル -->
+        <div class="panels-container">
+
+            <!-- ===== 左パネル ===== -->
+            <div class="panel panel-left">
+                <div class="panel-header">原稿を入力</div>
+                <div class="panel-body">
+                    <textarea id="manuscriptInput" class="textarea-large" placeholder="原稿のテキストを入力してください..."></textarea>
+
+                    <div class="input-action-row">
+                        <button class="btn btn-primary btn-full" id="suggestCharBtn">
+                            キャラを提案する
+                        </button>
+                        <button class="btn btn-secondary btn-small-icon" id="clearManuscriptBtn"
+                            title="原稿を削除">🗑️</button>
+                    </div>
+
+                    <div class="section-label">キャラクター設定</div>
+                    <div id="characterSettingsContainer" class="char-settings-container">
+                        <div class="no-char-message">キャラクター設定がここに表示されます</div>
+                    </div>
+
+                    <div class="section-label">カスタムプロンプト（画風・頭身等）</div>
+                    <textarea id="charCustomPrompt" class="textarea-small"
+                        placeholder="例: 6頭身、少女漫画風、水彩画風、厚塗り風..."></textarea>
+                </div>
+                <div class="panel-footer">
+                    <div class="section-label">参照画像 (任意)</div>
+                    <div class="char-image-zone" id="charRefImageZone" style="min-height: 100px;">
+                        <div class="drop-placeholder" id="charRefPlaceholder">
+                            <div class="drop-icon">👤</div>
+                            <p>JPEG / PNG</p>
+                            <small>ドラッグ＆ドロップ または クリックで画像を追加</small>
+                        </div>
+                        <div class="char-image-grid" id="charRefImageGrid"></div>
+                        <input type="file" id="charRefImageInput" accept="image/*" multiple style="display:none;">
+                    </div>
+                    <button class="btn btn-accent btn-full" id="create3ViewBtn">
+                        キャラクター３面図を作成
+                    </button>
+                    <div class="btn-row">
+                        <button class="btn btn-secondary" id="createEkonte12Btn">字コンテ1-2作成</button>
+                        <button class="btn btn-secondary" id="createEkonte3Btn">字コンテ3作成</button>
+                        <button class="btn btn-secondary" id="createEkonteBtn">字コンテ作成</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== 中央パネル ===== -->
+            <div class="panel panel-center">
+                <div class="panel-header">作成するエンタメの素材を登録</div>
+                <div class="panel-body">
+                    <!-- キャラクター3面図セット -->
+                    <div class="section-label">キャラクター３面図(新規または既存)をセット</div>
+                    <div class="char-image-zone" id="charImageZone">
+                        <div class="drop-placeholder" id="charDropPlaceholder">
+                            <div class="drop-icon">👤</div>
+                            <p>JPEG / PNG</p>
+                            <small>ドラッグ＆ドロップ または クリックで画像を追加</small>
+                        </div>
+                        <div class="char-image-grid" id="charImageGrid"></div>
+                        <input type="file" id="charImageInput" accept="image/*" multiple style="display:none;">
+                    </div>
+                    <button class="btn btn-primary btn-full" id="exportCharBtn">キャラを出力する</button>
+
+                    <div class="divider"></div>
+
+                    <!-- 字コンテの内容 -->
+                    <div class="section-label">字コンテの内容</div>
+                    <textarea id="ekonteContent" class="textarea-large"
+                        placeholder="字コンテの内容がここに表示されます...（手動編集可能）"></textarea>
+                    <div class="btn-row input-action-row">
+                        <button class="btn btn-secondary btn-full" id="copyTextBtn">テキストをコピー</button>
+                        <button class="btn btn-secondary btn-small-icon" id="clearStoryboardBtn"
+                            title="字コンテを削除">🗑️</button>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <!-- ページ設定 -->
+                    <div class="section-label">作成する漫画１ページの設定</div>
+                    <div class="settings-grid">
+                        <div class="setting-item">
+                            <label for="numImages">画像数</label>
+                            <select id="numImages">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4" selected>4</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="aspectRatio">アスペクト比</label>
+                            <select id="aspectRatio">
+                                <option value="9:16">9:16 (縦長)</option>
+                                <option value="2:3" selected>2:3</option>
+                                <option value="3:4">3:4</option>
+                                <option value="1:1">1:1 (正方形)</option>
+                                <option value="4:3">4:3</option>
+                                <option value="3:2">3:2</option>
+                                <option value="16:9">16:9 (横長)</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="resolution">解像度</label>
+                            <select id="resolution">
+                                <option value="1K" selected>1K</option>
+                                <option value="2K">2K</option>
+                                <option value="4K">4K</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <label for="outputFormat">フォーマット</label>
+                            <select id="outputFormat">
+                                <option value="png" selected>PNG</option>
+                                <option value="jpeg">JPEG</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- カスタムプロンプト -->
+                    <div class="section-label">カスタムプロンプト (任意)</div>
+                    <textarea id="customPrompt" class="textarea-small" placeholder="追加のプロンプトを入力..."></textarea>
+                </div>
+            </div>
+
+            <!-- ===== 右パネル ===== -->
+            <div class="panel panel-right">
+                <div class="panel-header">
+                    <span>素材を作成</span>
+                    <span id="totalPageCount" style="font-size: 0.85rem; font-weight: normal;">全0ページ</span>
+                </div>
+                <div class="panel-body">
+                    <div class="right-top-actions">
+                        <button class="btn btn-primary" id="registerScenesBtn">シーンを登録する</button>
+                        <button class="btn btn-success" id="bulkGenerateBtn">一括生成</button>
+                        <button class="btn btn-accent" id="bulkSaveBtn">一括保存</button>
+                        <button class="btn btn-danger" id="bulkDeleteBtn">一括削除</button>
+                    </div>
+                    <div class="scenes-container" id="scenesContainer">
+                        <div class="no-scenes-message">シーンを登録してください</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="prompts.js"></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+
+</html>
